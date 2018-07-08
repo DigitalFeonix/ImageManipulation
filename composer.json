@@ -1,5 +1,6 @@
 {
     "name": "digitalfeonix/imagemanipulation",
+    "version": "1.0.0",
     "description": "Helper classes for image manipulation with PHP's GD functions",
     "type": "library",
     "license": "MIT",
@@ -9,5 +10,10 @@
             "email": "digitalfeonix@gmail.com"
         }
     ],
-    "require": {}
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "DigitalFeonix\\": "src"
+        }
+    }
 }
