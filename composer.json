@@ -1,0 +1,13 @@
+{
+    "name": "digitalfeonix/imagemanipulation",
+    "description": "Helper classes for image manipulation with PHP's GD functions",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Reed Thayer",
+            "email": "digitalfeonix@gmail.com"
+        }
+    ],
+    "require": {}
+}
