@@ -2,6 +2,11 @@
 
 namespace DigitalFeonix;
 
+/**
+ * ImageManipulation is a GD based class to do common image tasks such as
+ * resizing and scaling. It also has some more features for "compositing"
+ * images.
+ */
 class ImageManipulation
 {
     protected $img;
@@ -12,6 +17,11 @@ class ImageManipulation
     protected $img_width    = 0;
     protected $img_height   = 0;
 
+    /**
+     * __construct
+     *
+     * @return void
+     */
     function __construct()
     {
         ## TODO: add some parameter passing for construct
@@ -20,11 +30,21 @@ class ImageManipulation
         $this->has_convolution = function_exists('imageconvolution');
     }
 
+    /**
+     * __destruct
+     *
+     * @return void
+     */
     function __destruct()
     {
         $this->clear_img();
     }
 
+    /**
+     * clear_img
+     *
+     * @return void
+     */
     private function clear_img()
     {
         if (is_resource($this->img))
@@ -33,6 +53,11 @@ class ImageManipulation
         }
     }
 
+    /**
+     * reset_sizes
+     *
+     * @return void
+     */
     private function reset_sizes()
     {
         $this->img_width  = imagesx($this->img);
@@ -43,7 +68,13 @@ class ImageManipulation
     # private Functions
     ################################################################################
 
-    // private function to determine file image type
+    /**
+     * private function to determine image type by filename extension
+     *
+     * @param  string $file
+     *
+     * @return string
+     */
     protected function getFileType($file)
     {
         $type = strtolower(preg_replace('/^(.*)\./i', '', $file));
@@ -51,7 +82,13 @@ class ImageManipulation
         return $type;
     }
 
-    // averaging function, used primarly by the pixelate method
+    /**
+     * averaging function, used primarly by the pixelate method
+     *
+     * @param  array $arr
+     *
+     * @return integer
+     */
     protected function avg($arr)
     {
         return round(array_sum($arr) / count($arr));
@@ -61,6 +98,14 @@ class ImageManipulation
     # DEBUG help
     ################################################################################
 
+    /**
+     * setProperty
+     *
+     * @param  string $property
+     * @param  mixed $value
+     *
+     * @return void
+     */
     public function setProperty($property, $value)
     {
         $this->$property = $value;
@@ -70,12 +115,25 @@ class ImageManipulation
     # Image management
     ################################################################################
 
+    /**
+     * isLoaded
+     *
+     * @return boolean
+     */
     public function isLoaded()
     {
         return is_resource($this->img);
     }
 
-    // create blank image with transparent background
+    /**
+     * create blank image with optional background color
+     *
+     * @param  integer $width
+     * @param  integer $height
+     * @param  integer $bgcolor
+     *
+     * @return void
+     */
     public function create($width, $height, $bgcolor = 0x7F000000)
     {
         $this->clear_img();
@@ -89,7 +147,14 @@ class ImageManipulation
         imagefill($this->img, 0, 0, $bgcolor);
     }
 
-    // load image file from string
+    /**
+     * load image file from (binary) string
+     *
+     * @param  string  $string
+     * @param  integer $bgcolor
+     *
+     * @return void
+     */
     public function load($string, $bgcolor = 0x7F000000)
     {
         $img = imagecreatefromstring($string);
@@ -104,7 +169,14 @@ class ImageManipulation
         imagedestroy($img);
     }
 
-    // open from filename/path
+    /**
+     * open image from filename/path
+     *
+     * @param  string $file
+     * @param  integer $bgcolor
+     *
+     * @return void
+     */
     public function open($file, $bgcolor = 0x7F000000)
     {
         $size = getimagesize($file);
@@ -132,8 +204,14 @@ class ImageManipulation
         ## TODO: deal with non-existing file
     }
 
-    // replace current instance with external image
     ## IDEA: rename setImage() ?
+    /**
+     * replace current instance with a COPY of an external image
+     *
+     * @param  resource $img
+     *
+     * @return void
+     */
     public function importImage($img)
     {
         $w = imagesx($img);
@@ -144,8 +222,12 @@ class ImageManipulation
         $this->copyImage($img,0,0,0,0,$w,$h,$w,$h);
     }
 
-    // send an image COPY out for use in another instance
     ## IDEA: rename getImage() ?
+    /**
+     * send an image COPY out for use in another instance
+     *
+     * @return resource
+     */
     public function exportImage()
     {
         ## XXX: could allow manipulation outside of the class, in case we want refImage()
@@ -162,10 +244,13 @@ class ImageManipulation
         return $img;
     }
 
-    ## TODO: create inbound version of imageReference() to assign current object to existing image
-    ##  LOAD keyword is already used for importing image from a string (like from filegetcontents())
-    ##  OPEN keyword is already used for importing image from a file
-    ##  possiblities: assignImage($img), beImage($img), linkImage($img), inputImage($img)
+    /**
+     * set local image resource to outside image resource
+     *
+     * @param  resource $img
+     *
+     * @return void
+     */
     public function setResource($img)
     {
         $this->clear_img();
@@ -173,20 +258,39 @@ class ImageManipulation
         $this->reset_sizes();
     }
 
-    // pass image reference out for direct manipulation elsewhere
+    /**
+     * pass image reference out for direct manipulation elsewhere
+     *
+     * @return resource
+     */
     public function getResource()
     {
         return $this->img;
     }
 
-    // save to filesystem
+    /**
+     * save to filesystem
+     *
+     * @param  string $filename
+     * @param  string $type
+     * @param  mixed $quality
+     *
+     * @return void
+     */
     public function save($filename, $type = 'jpeg', $quality = 90)
     {
         $out = 'image' . $type;
         $out($this->img, $filename, $quality);
     }
 
-    // output to browser
+    /**
+     * output to browser
+     *
+     * @param  string $type
+     * @param  mixed $quality
+     *
+     * @return void
+     */
     public function output($type = 'jpeg', $quality = 90)
     {
         header('Content-type: image/'.$type);
@@ -194,13 +298,34 @@ class ImageManipulation
         $out($this->img, NULL, $quality);
     }
 
-    // copy outside image onto local image
+    /**
+     * copy outside image onto local image
+     *
+     * @param  resource $img external image resource
+     * @param  integer $dx  destination X
+     * @param  integer $dy  destination Y
+     * @param  integer $sx  source X
+     * @param  integer $sy  source Y
+     * @param  integer $dw  destination WIDTH
+     * @param  integer $dh  destination HEIGHT
+     * @param  integer $sw  source WIDTH
+     * @param  integer $sh  source HEIGHT
+     *
+     * @return void
+     */
     public function copyImage($img, $dx, $dy, $sx, $sy, $dw, $dh, $sw, $sh)
     {
         imagecopyresampled($this->img, $img, $dx, $dy, $sx, $sy, $dw, $dh, $sw, $sh);
     }
 
-    // resize local image
+    /**
+     * resize local image to the dimension, does not preserve image ratio
+     *
+     * @param  integer $w
+     * @param  integer $h
+     *
+     * @return void
+     */
     public function resize($w, $h)
     {
         $img = imagecreatetruecolor($w, $h);
@@ -213,7 +338,15 @@ class ImageManipulation
         $this->setResource($img);
     }
 
-    // fit local image inside of new size, keeping image ratio
+    /**
+     * fit local image inside of new size, keeping image ratio
+     *
+     * @param  integer $hdim
+     * @param  integer $vdim
+     * @param  integer $bgcolor
+     *
+     * @return void
+     */
     public function fitImage($hdim, $vdim, $bgcolor = 0xFFFFFF)
     {
         $size = array($this->getWidth(), $this->getHeight());
@@ -243,7 +376,14 @@ class ImageManipulation
         $this->setResource($img);
     }
 
-    // resize local image to fill new size, keeping image ratio (overflows new area)
+    /**
+     * resize local image to fill the dimension, keeping image ratio (overflow hidden)
+     *
+     * @param  integer $hdim
+     * @param  integer $vdim
+     *
+     * @return void
+     */
     public function fillImage($hdim, $vdim)
     {
         $size = array($this->img_width, $this->img_height);
@@ -274,7 +414,16 @@ class ImageManipulation
         $this->setResource($img);
     }
 
-    public function scaleImage($wdim, $hdim, $bgcolor = 0xFFFFFF)
+    /**
+     * scale local image to fill the dimensions, keeping image ratio (overflow visible)
+     *
+     * @param  integer $hdim
+     * @param  integer $vdim
+     * @param  integer $bgcolor
+     *
+     * @return void
+     */
+    public function scaleImage($hdim, $vdim, $bgcolor = 0xFFFFFF)
     {
         $size = array($this->img_width, $this->img_height);
 
@@ -305,6 +454,11 @@ class ImageManipulation
     # Image Info
     ################################################################################
 
+    /**
+     * getWidth
+     *
+     * @return integer
+     */
     public function getWidth()
     {
         if (($this->img_width == 0) && is_resource($this->img))
@@ -315,6 +469,11 @@ class ImageManipulation
         return $this->img_width;
     }
 
+    /**
+     * getHeight
+     *
+     * @return integer
+     */
     public function getHeight()
     {
         if (($this->img_height == 0) && is_resource($this->img))
@@ -325,6 +484,11 @@ class ImageManipulation
         return $this->img_height;
     }
 
+    /**
+     * getFont
+     *
+     * @return string
+     */
     public function getFont()
     {
         return $this->font_file;
@@ -334,6 +498,13 @@ class ImageManipulation
     # Basic Text Manipulation
     ################################################################################
 
+    /**
+     * setFont
+     *
+     * @param  string $font_file
+     *
+     * @return void
+     */
     public function setFont($font_file)
     {
         if (file_exists($font_file))
@@ -347,6 +518,18 @@ class ImageManipulation
         }
     }
 
+    /**
+     * addText
+     *
+     * @param  string $text
+     * @param  integer $x
+     * @param  integer $y
+     * @param  float $angle
+     * @param  float $size
+     * @param  integer $color
+     *
+     * @return void
+     */
     public function addText($text, $x, $y, $angle = 0, $size = 12, $color = 0x000000)
     {
         if (is_null($this->font_file))
@@ -368,6 +551,15 @@ class ImageManipulation
         );
     }
 
+    /**
+     * getTextBox
+     *
+     * @param  string $string
+     * @param  float $font_size
+     * @param  float $angle
+     *
+     * @return array
+     */
     public function getTextBox($string, $font_size = 12, $angle = 0)
     {
         $tbox = imagettfbbox($font_size, $angle, $this->font_file, $string);
@@ -379,6 +571,13 @@ class ImageManipulation
     }
 
     ### NOTE: should this go into ImageTextManipulation?
+    /**
+     * fitTextHeight
+     *
+     * @param  integer $height
+     *
+     * @return array
+     */
     public function fitTextHeight($height)
     {
         $n = $height;
@@ -396,22 +595,64 @@ class ImageManipulation
     # basic draw functions
     ################################################################################
 
+    /**
+     * drawLine
+     *
+     * @param  integer $x1
+     * @param  integer $y1
+     * @param  integer $x2
+     * @param  integer $y2
+     * @param  integer $color
+     *
+     * @return boolean
+     */
     public function drawLine($x1, $y1, $x2, $y2, $color = 0x000000)
     {
         return imageline($this->img, $x1, $y1, $x2, $y2, $color);
     }
 
+    /**
+     * drawDashedLine
+     *
+     * @param  integer $x1
+     * @param  integer $y1
+     * @param  integer $x2
+     * @param  integer $y2
+     * @param  integer $color
+     *
+     * @return boolean
+     */
     public function drawDashedLine($x1, $y1, $x2, $y2, $color = 0x000000)
     {
         imagesetstyle($this->img, array($color, $color, $color, IMG_COLOR_TRANSPARENT, IMG_COLOR_TRANSPARENT, IMG_COLOR_TRANSPARENT));
         return imageline($this->img, $x1, $y1, $x2, $y2, IMG_COLOR_STYLED);
     }
 
+    /**
+     * drawRect
+     *
+     * @param  integer $x1
+     * @param  integer $y1
+     * @param  integer $x2
+     * @param  integer $y2
+     * @param  integer $color
+     *
+     * @return boolean
+     */
     public function drawRect($x1, $y1, $x2, $y2, $color = 0x000000)
     {
         return imagefilledrectangle($this->img, $x1, $y1, $x2, $y2, $color);
     }
 
+    /**
+     * drawPoly
+     *
+     * @param  array $points
+     * @param  integer $num_points
+     * @param  integer $color
+     *
+     * @return boolean
+     */
     public function drawPoly($points, $num_points, $color)
     {
         return imagefilledpolygon($this->img, $points, $num_points, $color);
@@ -421,6 +662,13 @@ class ImageManipulation
     # Filters and image manips
     ################################################################################
 
+    /**
+     * gd_to_rgba
+     *
+     * @param  integer $gd_color
+     *
+     * @return array
+     */
     private function gd_to_rgba($gd_color)
     {
         $a = ($gd_color >> 24) & 0xFF;
@@ -431,11 +679,23 @@ class ImageManipulation
         return array('red' => $r, 'green' => $g, 'blue' => $b, 'alpha' => $a);
     }
 
+    /**
+     * fill
+     *
+     * @param  integer $color
+     *
+     * @return void
+     */
     public function fill($color)
     {
         imagefill($this->img, 0, 0, $color);
     }
 
+    /**
+     * convertToBW
+     *
+     * @return void
+     */
     public function convertToBW()
     {
         if ($this->has_imagefilter)
@@ -475,7 +735,13 @@ class ImageManipulation
         }
     }
 
-    # based on function from http://hanswestman.se/web-development/some-image-filters-for-php-gd/
+    /**
+     * sepia
+     * 
+     * based on function from http://hanswestman.se/web-development/some-image-filters-for-php-gd/
+     *
+     * @return void
+     */
     public function sepia()
     {
         if ($this->has_imagefilter)
@@ -522,7 +788,16 @@ class ImageManipulation
         }
     }
 
-    // PHP already uses colorize for adding/removing color from an image
+    /**
+     * colorize
+     *
+     * @param  integer $red
+     * @param  integer $green
+     * @param  integer $blue
+     * @param  integer $alpha
+     *
+     * @return void
+     */
     public function colorize($red, $green, $blue, $alpha = 0)
     {
         if ($this->has_imagefilter)
@@ -569,6 +844,13 @@ class ImageManipulation
         }
     }
 
+    /**
+     * grades the image
+     *
+     * @param  integer $grading_color
+     *
+     * @return void
+     */
     public function grade($grading_color)
     {
         // get width/height once
@@ -604,7 +886,13 @@ class ImageManipulation
     }
 
 
-    // replacing the whites with a color is tinting
+    /**
+     * tints the image, replacing the whites with a color
+     *
+     * @param  integer $tinting_color
+     *
+     * @return void
+     */
     public function tinting($tinting_color)
     {
         // get width/height once
@@ -644,7 +932,13 @@ class ImageManipulation
         }
     }
 
-    // replacing the blacks with a color is toning
+    /**
+     * tones the image, replacing the blacks with a color
+     *
+     * @param  mixed $toning_color
+     *
+     * @return void
+     */
     public function toning($toning_color)
     {
         // get width/height once
@@ -684,6 +978,11 @@ class ImageManipulation
         }
     }
 
+    /**
+     * applies a find edges type filter to the image
+     *
+     * @return void
+     */
     public function findEdges()
     {
         if ($this->has_convolution)
@@ -761,6 +1060,11 @@ class ImageManipulation
         }
     }
 
+    /**
+     * invert the image colors
+     *
+     * @return void
+     */
     public function invert()
     {
         if ($this->has_imagefilter)
@@ -800,7 +1104,15 @@ class ImageManipulation
         }
     }
 
-    // negative increases contrast, postive decreases it (100 is complete gray)
+    /**
+     * adjusts the contrast of the image
+     * 
+     * negative increases contrast, postive decreases it (100 is complete gray)
+     *
+     * @param  integer $val
+     *
+     * @return void
+     */
     public function adjustContrast($val = 0)
     {
         if ($this->has_imagefilter)
@@ -865,6 +1177,11 @@ class ImageManipulation
 
     ## ROTATION
 
+    /**
+     * Uses mean removal to achieve a "sketchy" effect
+     *
+     * @return void
+     */
     public function meanRemoval()
     {
         if ($this->has_imagefilter)
@@ -875,6 +1192,14 @@ class ImageManipulation
         ## need no filter version
     }
 
+    /**
+     * pixelate the image
+     *
+     * @param  integer $block_size
+     * @param  boolean $advanced
+     *
+     * @return void
+     */
     public function pixelate($block_size = 4, $advanced = FALSE)
     {
         if ($this->has_imagefilter)
@@ -927,6 +1252,15 @@ class ImageManipulation
         }
     }
 
+    /**
+     * overlay an external image onto this image
+     *
+     * @param  resource $image
+     * @param  integer $destX
+     * @param  integer $destY
+     *
+     * @return void
+     */
     public function applyOverlay($image, $destX, $destY)
     {
         // get width/height once
@@ -982,6 +1316,15 @@ class ImageManipulation
         }
     }
 
+    /**
+     * overlay an external image onto this image with a bolder result
+     *
+     * @param  resource $image
+     * @param  integer $destX
+     * @param  integer $destY
+     *
+     * @return void
+     */
     public function applyDoubleOverlay($image, $destX, $destY)
     {
         // get width/height once
@@ -1043,7 +1386,13 @@ class ImageManipulation
     # alpha/masking functions
     ################################################################################
 
-    // uses an images alpha channel for transparency
+    /**
+     * uses an images alpha channel for transparency
+     *
+     * @param  resource $mask
+     *
+     * @return void
+     */
     public function applyAlpha($mask)
     {
         $orig = $this->exportImage();
@@ -1083,7 +1432,13 @@ class ImageManipulation
         imagedestroy($orig);
     }
 
-    // uses a grayscale image with white being opaque
+    /**
+     * applies a mask using a grayscale image with white being opaque
+     *
+     * @param  mixed $mask
+     *
+     * @return void
+     */
     public function applyMask($mask)
     {
         $orig = $this->exportImage();
@@ -1162,6 +1517,15 @@ class ImageManipulation
 
     */
 
+    /**
+     * applies an unsharp mask to the image
+     *
+     * @param  float $amount
+     * @param  float $radius
+     * @param  float $threshold
+     *
+     * @return void
+     */
     public function unsharpMask($amount, $radius, $threshold)
     {
         ////////////////////////////////////////////////////////////////////////////////////////////////

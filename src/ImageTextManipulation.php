@@ -2,6 +2,10 @@
 
 namespace DigitalFeonix;
 
+/**
+ * ImageTextManipulation extends ImageManipulation with additional text drawing
+ * capabilities
+ */
 class ImageTextManipulation extends ImageManipulation
 {
     // font information (font file is set in parent)
@@ -172,7 +176,9 @@ class ImageTextManipulation extends ImageManipulation
         }
     }
 
-    // overrides the parent version
+    /**
+     * @override
+     */
     public function setFont($font)
     {
         if (!empty($this->available_fonts) && array_key_exists($font, $this->available_fonts))
