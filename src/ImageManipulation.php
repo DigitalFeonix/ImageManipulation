@@ -662,6 +662,8 @@ class ImageManipulation
     # Filters and image manips
     ################################################################################
 
+    // IDEA: a static version of `gd_to_rgba()`
+
     /**
      * gd_to_rgba
      *
@@ -737,7 +739,7 @@ class ImageManipulation
 
     /**
      * sepia
-     * 
+     *
      * based on function from http://hanswestman.se/web-development/some-image-filters-for-php-gd/
      *
      * @return void
@@ -1106,7 +1108,7 @@ class ImageManipulation
 
     /**
      * adjusts the contrast of the image
-     * 
+     *
      * negative increases contrast, postive decreases it (100 is complete gray)
      *
      * @param  integer $val
@@ -1170,6 +1172,85 @@ class ImageManipulation
             }
         }
     }
+
+
+    /**
+     * convert the image to an index palette
+     *
+     * @param  mixed $n_colors  The numbers of colors in the palette
+     * @param  bool  $dither    Should the image be dithered
+     * @return void
+     */
+    public function convertToIndexed($n_colors, $dither = FALSE)
+    {
+        // if it is not already true color (maybe the source is GIF), then convert so we can
+        // convert to the number of colors we want
+        if ( !imageistruecolor( $this->img ) )
+        {
+            imagepalettetotruecolor($this->img);
+        }
+
+        imagetruecolortopalette($this->img, $dither, $n_colors);
+    }
+
+
+    /**
+     * Take a palette and create an indexed image with that palette (like the Obama Hope image)
+     *
+     * Each color in the pallete is an associative array that contains `red`, `green`, and `blue`
+     * values of 0-255
+     *
+     * @param  array $palette       The palette to transform to (array of colors)
+     * @param  bool  $sort_palette  Should the palette be sorted by luminosity (darkest first)
+     * @return void
+     */
+    public function applyPalette(array $palette, $sort_palette = TRUE)
+    {
+        $this->convertToIndexed( count($palette) );
+
+        if ($sort_palette)
+        {
+            // sort palette by value
+            usort($palette, function($a, $b) {
+
+                $k1 = (($a['red'] * 0.299) + ($a['green'] * 0.587) + ($a['blue'] * 0.114)) & 0xFF;
+                $k2 = (($b['red'] * 0.299) + ($b['green'] * 0.587) + ($b['blue'] * 0.114)) & 0xFF;
+
+                return $k1 - $k2;
+            });
+        }
+
+        // WARN: the image's final palette size could be smaller than the palette given
+        $color_total = imagecolorstotal( $this->img );
+
+        // get levels of the image
+        $levels = [];
+
+        for ($c = 0; $c < $color_total; $c++)
+        {
+            $col = imagecolorsforindex($this->img, $c);
+
+            // NOTE: this will STILL work if already B/W - it won't affect the value
+            $k = (($col['red'] * 0.299) + ($col['green'] * 0.587) + ($col['blue'] * 0.114)) & 0xFF;
+
+            $levels[] = $k;
+        }
+
+        $keys = array_keys($levels);
+
+        // sort the levels array and then use those keys to resort the palette array
+        array_multisort($levels, SORT_ASC, SORT_NUMERIC, $keys);
+        array_multisort($keys, SORT_ASC, SORT_NUMERIC, $palette);
+
+        // now we readjust the color palette of the image
+        for ($c = 0; $c < $color_total; $c++)
+        {
+            $col = imagecolorsforindex($this->img, $c);
+
+            imagecolorset($this->img, $c, $palette[$c]['red'], $palette[$c]['green'], $palette[$c]['blue']);
+        }
+    }
+
 
     ## BRIGHTNESS ?
 
