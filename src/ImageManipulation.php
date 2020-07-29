@@ -1252,6 +1252,48 @@ class ImageManipulation
     }
 
 
+    /**
+     * convert an image into a high contrast, black and white version based on a threshold value
+     *
+     * all pixels darker than the threshold value are converted to black, the rest white
+     *
+     * @param  integer $threshold threshold value (0-255)
+     * @return void
+     */
+    public function applyThreshold($threshold)
+    {
+        // get width/height once
+        $w = imagesx($this->img);
+        $h = imagesy($this->img);
+
+        // loop through the pixels
+        for ($x = 0; $x < $w; $x++)
+        {
+            for ($y = 0; $y < $h; $y++)
+            {
+                // get the color components at x,y
+                $color = imagecolorat($this->img, $x, $y);
+
+                $a = ($color >> 24) & 0xFF;
+                $r = ($color >> 16) & 0xFF;
+                $g = ($color >> 8) & 0xFF;
+                $b =  $color & 0xFF;
+
+                // convert to B/W
+                $k = (($r * 0.299) + ($g * 0.587) + ($b * 0.114)) & 0xFF;
+
+                // if the gray value is higher than the threshold it is white, else black
+                $k = ($k > $threshold) ? 0xFF : 0x00;
+
+                // combine into a single value to be put back into the image
+                $color = (($a << 24) + ($k << 16) + ($k << 8) + $k);
+
+                // now that we have a valid value, set the pixel to that color.
+                imagesetpixel($this->img, $x, $y, $color);
+            }
+        }
+    }
+
     ## BRIGHTNESS ?
 
     ## RESIZING
