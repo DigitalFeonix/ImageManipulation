@@ -1406,57 +1406,7 @@ class ImageManipulation
      */
     public function applyOverlay($image, $destX, $destY)
     {
-        // get width/height once
-        $w = imagesx($this->img);
-        $h = imagesy($this->img);
-        $dw = imagesx($image);
-        $dh = imagesy($image);
-
-        for ($x = 0; $x < $dw; $x++)
-        {
-            for ($y = 0; $y < $dh; $y++)
-            {
-                ## CHECK TO SEE IF THE LOCATION IS WITHIN THE TARGET IMAGE
-                if ($x + $destX < 0) { continue; }
-                if ($y + $destY < 0) { continue; }
-                if ($x + $destX >= $w) { continue; }
-                if ($y + $destY >= $h) { continue; }
-
-                // First get the colors for the base and top pixels.
-                $color = imagecolorat($this->img, $x + $destX, $y + $destY);
-
-                $baseColor = array(
-                  'alpha' => ($color >> 24) & 0x7F,
-                  'red'   => ($color >> 16) & 0xFF,
-                  'green' => ($color >> 8) & 0xFF,
-                  'blue'  => $color & 0xFF
-                );
-
-                $color = imagecolorat($image, $x, $y);
-
-                $topColor = array(
-                  'alpha' => ($color >> 24) & 0x7F,
-                  'red'   => ($color >> 16) & 0xFF,
-                  'green' => ($color >> 8) & 0xFF,
-                  'blue'  => $color & 0xFF
-                );
-
-                // Now perform the multiply algorithm.
-                $destColor = array(
-                    'red'   => min(intval($baseColor['red']   * ($topColor['red']   / 0xFF)), 0xFF),
-                    'green' => min(intval($baseColor['green'] * ($topColor['green'] / 0xFF)), 0xFF),
-                    'blue'  => min(intval($baseColor['blue']  * ($topColor['blue']  / 0xFF)), 0xFF),
-                    'alpha' => min(($baseColor['alpha'] + $topColor['alpha']), 0x7F)
-                );
-
-                // Now set the destination pixel.
-                #$newColor = imagecolorallocatealpha($this->img, $destColor['red'], $destColor['green'], $destColor['blue'], $destColor['alpha']);
-                $newColor = ($destColor['alpha'] << 24) + ($destColor['red'] << 16) + ($destColor['green'] << 8) + ($destColor['blue']);
-
-                // this really is drawing the color on top of existing pixel
-                imagesetpixel($this->img, $x + $destX, $y + $destY, $newColor);
-            }
-        }
+        $this->applyBlendMode($image, $destX, $destY, 'multiply');
     }
 
     /**
@@ -1470,57 +1420,7 @@ class ImageManipulation
      */
     public function applyDoubleOverlay($image, $destX, $destY)
     {
-        // get width/height once
-        $w = imagesx($this->img);
-        $h = imagesy($this->img);
-        $dw = imagesx($image);
-        $dh = imagesy($image);
-
-        for ($x = 0; $x < $dw; $x++)
-        {
-            for ($y = 0; $y < $dh; $y++)
-            {
-                ## CHECK TO SEE IF THE LOCATION IS WITHIN THE TARGET IMAGE
-                if ($x + $destX < 0) { continue; }
-                if ($y + $destY < 0) { continue; }
-                if ($x + $destX >= $w) { continue; }
-                if ($y + $destY >= $h) { continue; }
-
-                // First get the colors for the base and top pixels.
-                $color = imagecolorat($this->img, $x + $destX, $y + $destY);
-
-                $baseColor = array(
-                  'alpha' => ($color >> 24) & 0x7F,
-                  'red'   => ($color >> 16) & 0xFF,
-                  'green' => ($color >> 8) & 0xFF,
-                  'blue'  => $color & 0xFF
-                );
-
-                $color = imagecolorat($image, $x, $y);
-
-                $topColor = array(
-                  'alpha' => ($color >> 24) & 0x7F,
-                  'red'   => ($color >> 16) & 0xFF,
-                  'green' => ($color >> 8) & 0xFF,
-                  'blue'  => $color & 0xFF
-                );
-
-                // Now perform the multiply algorithm.
-                $destColor = array(
-                    'red'   => min(intval($baseColor['red']   * pow(($topColor['red']   / 0xFF),2)), 0xFF),
-                    'green' => min(intval($baseColor['green'] * pow(($topColor['green'] / 0xFF),2)), 0xFF),
-                    'blue'  => min(intval($baseColor['blue']  * pow(($topColor['blue']  / 0xFF),2)), 0xFF),
-                    'alpha' => min(($baseColor['alpha'] + $topColor['alpha']), 0x7F)
-                );
-
-                // Now set the destination pixel.
-                #$newColor = imagecolorallocatealpha($this->img, $destColor['red'], $destColor['green'], $destColor['blue'], $destColor['alpha']);
-                $newColor = ($destColor['alpha'] << 24) + ($destColor['red'] << 16) + ($destColor['green'] << 8) + ($destColor['blue']);
-
-                // this really is drawing the color on top of existing pixel
-                imagesetpixel($this->img, $x + $destX, $y + $destY, $newColor);
-            }
-        }
+        $this->applyBlendMode($image, $destX, $destY, 'double-multiply');
     }
 
     /**
