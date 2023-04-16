@@ -1175,6 +1175,28 @@ class ImageManipulation
 
 
     /**
+     * adjusts the brightness of the image
+     *
+     * positive increases brightness, negative decreases it
+     *
+     * @param  integer $val value from -255 to 255
+     *
+     * @return void
+     */
+    public function adjustBrightness($val = 0)
+    {
+        if ($this->has_imagefilter)
+        {
+            imagefilter($this->img, IMG_FILTER_BRIGHTNESS, $val);
+        }
+        else
+        {
+            // TODO: non-filter version of brightness
+        }
+    }
+
+
+    /**
      * convert the image to an index palette
      *
      * @param  mixed $n_colors  The numbers of colors in the palette
@@ -1293,8 +1315,6 @@ class ImageManipulation
             }
         }
     }
-
-    ## BRIGHTNESS ?
 
     ## RESIZING
 
@@ -1492,6 +1512,128 @@ class ImageManipulation
                     'blue'  => min(intval($baseColor['blue']  * pow(($topColor['blue']  / 0xFF),2)), 0xFF),
                     'alpha' => min(($baseColor['alpha'] + $topColor['alpha']), 0x7F)
                 );
+
+                // Now set the destination pixel.
+                #$newColor = imagecolorallocatealpha($this->img, $destColor['red'], $destColor['green'], $destColor['blue'], $destColor['alpha']);
+                $newColor = ($destColor['alpha'] << 24) + ($destColor['red'] << 16) + ($destColor['green'] << 8) + ($destColor['blue']);
+
+                // this really is drawing the color on top of existing pixel
+                imagesetpixel($this->img, $x + $destX, $y + $destY, $newColor);
+            }
+        }
+    }
+
+    /**
+     * overlay an external image onto this image with a certain blend mode
+     *
+     * @param  resource $image
+     * @param  integer $destX
+     * @param  integer $destY
+     * @param  string  $mode blend mode (options are `multiply`, `overlay`, `hardlight`, and `screen`)
+     *
+     * @return void
+     */
+    public function applyBlendMode($image, $destX, $destY, $mode = 'multiply')
+    {
+        // get width/height once
+        $w = imagesx($this->img);
+        $h = imagesy($this->img);
+        $dw = imagesx($image);
+        $dh = imagesy($image);
+
+        for ($x = 0; $x < $dw; $x++)
+        {
+            for ($y = 0; $y < $dh; $y++)
+            {
+                ## CHECK TO SEE IF THE LOCATION IS WITHIN THE TARGET IMAGE
+                if ($x + $destX < 0) { continue; }
+                if ($y + $destY < 0) { continue; }
+                if ($x + $destX >= $w) { continue; }
+                if ($y + $destY >= $h) { continue; }
+
+                // First get the colors for the base and top pixels.
+                $color = imagecolorat($this->img, $x + $destX, $y + $destY);
+
+                $baseColor = array(
+                  'alpha' => ($color >> 24) & 0x7F,
+                  'red'   => ($color >> 16) & 0xFF,
+                  'green' => ($color >> 8) & 0xFF,
+                  'blue'  => $color & 0xFF
+                );
+
+                $color = imagecolorat($image, $x, $y);
+
+                $topColor = array(
+                  'alpha' => ($color >> 24) & 0x7F,
+                  'red'   => ($color >> 16) & 0xFF,
+                  'green' => ($color >> 8) & 0xFF,
+                  'blue'  => $color & 0xFF
+                );
+
+                switch ($mode)
+                {
+                    case 'hardlight':
+                        // Now perform the hardlight algorithm.
+                        $destColor = array(
+                            'red' => ($topColor['red'] / 0xFF < 0.5)
+                                ? intval(2 * $baseColor['red'] * ($topColor['red'] / 0xFF))
+                                : intval((1 - 2 * (1 - $baseColor['red'] / 0xFF) * (1 - $topColor['red'] / 0xFF)) * 0xFF),
+                            'green' => ($topColor['green'] / 0xFF < 0.5)
+                                ? intval(2 * $baseColor['green'] * ($topColor['green'] / 0xFF))
+                                : intval((1 - 2 * (1 - $baseColor['green'] / 0xFF) * (1 - $topColor['green'] / 0xFF)) * 0xFF),
+                            'blue' => ($topColor['blue'] / 0xFF < 0.5)
+                                ? intval(2 * $baseColor['blue'] * ($topColor['blue'] / 0xFF))
+                                : intval((1 - 2 * (1 - $baseColor['blue'] / 0xFF) * (1 - $topColor['blue'] / 0xFF)) * 0xFF),
+                            'alpha' => min(($baseColor['alpha'] + $topColor['alpha']), 0x7F)
+                        );
+                        break;
+
+                    case 'overlay':
+                        // Now perform the overlay algorithm.
+                        $destColor = array(
+                            'red' => ($baseColor['red'] / 0xFF < 0.5)
+                                ? intval(2 * $baseColor['red'] * ($topColor['red'] / 0xFF))
+                                : intval((1 - 2 * (1 - $baseColor['red'] / 0xFF) * (1 - $topColor['red'] / 0xFF)) * 0xFF),
+                            'green' => ($baseColor['green'] / 0xFF < 0.5)
+                                ? intval(2 * $baseColor['green'] * ($topColor['green'] / 0xFF))
+                                : intval((1 - 2 * (1 - $baseColor['green'] / 0xFF) * (1 - $topColor['green'] / 0xFF)) * 0xFF),
+                            'blue' => ($baseColor['blue'] / 0xFF < 0.5)
+                                ? intval(2 * $baseColor['blue'] * ($topColor['blue'] / 0xFF))
+                                : intval((1 - 2 * (1 - $baseColor['blue'] / 0xFF) * (1 - $topColor['blue'] / 0xFF)) * 0xFF),
+                            'alpha' => min(($baseColor['alpha'] + $topColor['alpha']), 0x7F)
+                        );
+                        break;
+
+                    case 'screen':
+                        // Now perform the screen algorithm.
+                        $destColor = array(
+                            'red'   => intval((1 - (1 - $baseColor['red'] / 0xFF) * (1 - $topColor['red'] / 0xFF)) * 0xFF),
+                            'green' => intval((1 - (1 - $baseColor['green'] / 0xFF) * (1 - $topColor['green'] / 0xFF)) * 0xFF),
+                            'blue'  => intval((1 - (1 - $baseColor['blue'] / 0xFF) * (1 - $topColor['blue'] / 0xFF)) * 0xFF),
+                            'alpha' => min(($baseColor['alpha'] + $topColor['alpha']), 0x7F)
+                        );
+                        break;
+
+                    case 'multiply':
+                        // Now perform the multiply algorithm.
+                        $destColor = array(
+                            'red'   => intval($baseColor['red']   * ($topColor['red']   / 0xFF)),
+                            'green' => intval($baseColor['green'] * ($topColor['green'] / 0xFF)),
+                            'blue'  => intval($baseColor['blue']  * ($topColor['blue']  / 0xFF)),
+                            'alpha' => min(($baseColor['alpha'] + $topColor['alpha']), 0x7F)
+                        );
+                        break;
+                    case 'double-multiply':
+                        // Now perform the "double multiply" algorithm.
+                        $destColor = array(
+                            'red'   => min(intval($baseColor['red']   * pow(($topColor['red']   / 0xFF),2)), 0xFF),
+                            'green' => min(intval($baseColor['green'] * pow(($topColor['green'] / 0xFF),2)), 0xFF),
+                            'blue'  => min(intval($baseColor['blue']  * pow(($topColor['blue']  / 0xFF),2)), 0xFF),
+                            'alpha' => min(($baseColor['alpha'] + $topColor['alpha']), 0x7F)
+                        );
+                        break;
+                }
+
 
                 // Now set the destination pixel.
                 #$newColor = imagecolorallocatealpha($this->img, $destColor['red'], $destColor['green'], $destColor['blue'], $destColor['alpha']);
